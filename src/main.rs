@@ -4,7 +4,7 @@
 extern crate diesel;
 
 use crate::schema::todo;
-use rocket::{self, get, post, routes};
+use rocket::{self, get, post, put, routes};
 use rocket_contrib::json::Json;
 use rocket_contrib::databases::{database, diesel::PgConnection};
 use diesel::{Queryable, Insertable};
@@ -46,6 +46,18 @@ fn create_todo(conn: DbConn, new_todo: Json<NewTodo>) -> Json<Todo>{
         .get_result(&*conn)
         .unwrap();
     Json(result)
+}
+
+#[put("/<id>")]
+fn check_todo(conn: DbConn, id: i32) -> Json<Todo> {
+    let target = todo::table
+        .filter(todo::columns::id.eq(id));
+    let result = diesel::update(target)
+        .set(todo::columns::checked.eq(true))
+        .get_result(&*conn)
+        .unwrap();
+
+    Json(result)
 
 }
 
@@ -62,6 +74,6 @@ fn main() {
     rocket::ignite()
     .attach(DbConn::fairing())
     .mount("/voting", routes![voting])
-    .mount("/todos", routes![get_todos, create_todo])
+    .mount("/todos", routes![get_todos, create_todo, check_todo])
     .launch();
 }
